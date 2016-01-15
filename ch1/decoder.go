@@ -43,15 +43,17 @@ func (r *errReader) Read(order binary.ByteOrder, data interface{}) error {
 		return r.err
 	}
 
-	return binary.Read(r.r, order, data)
+	r.err = binary.Read(r.r, order, data)
+	return r.err
 }
 
-func (r *errReader) ReadFull(buf []byte) (int, error) {
+func (r *errReader) ReadFull(buf []byte) (n int, _ error) {
 	if r.err != nil {
 		return 0, r.err
 	}
 
-	return io.ReadFull(r.r, buf)
+	n, r.err = io.ReadFull(r.r, buf)
+	return n, r.err
 }
 
 func (d *Decoder) Decode() (*Pattern, error) {
