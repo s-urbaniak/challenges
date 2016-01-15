@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	// InvalidHeader is the error returned by Decode
+	// ErrInvalidHeader is the error returned by Decode
 	// when a drum machine stream contains an invalid header.
-	InvalidHeader = errors.New("invalid header")
+	ErrInvalidHeader = errors.New("invalid header")
 )
 
 // DecodeFile decodes the drum machine file found at the provided path
@@ -56,7 +56,7 @@ func (d *Decoder) Decode() (*Pattern, error) {
 	case er.err != nil:
 		return nil, er.err
 	case string(header.Splice[:]) != "SPLICE":
-		return nil, InvalidHeader
+		return nil, ErrInvalidHeader
 	}
 
 	version := strings.TrimRight(
