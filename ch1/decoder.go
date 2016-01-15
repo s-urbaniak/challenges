@@ -3,6 +3,7 @@ package drum
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -74,7 +75,6 @@ func (d *Decoder) Decode() (*Pattern, error) {
 	switch {
 	case er.err != nil:
 		return nil, er.err
-
 	case string(header.Splice[:]) != "SPLICE":
 		return nil, InvalidHeader
 	}
@@ -84,28 +84,30 @@ func (d *Decoder) Decode() (*Pattern, error) {
 		string(0), // trim zero-byte values
 	)
 
+	// use limitreader limited by header size minus
+	// 32 bytes header.Version + 4 bytes tempo
 	er.r = io.LimitReader(d.r, header.Size-36)
 
 	p := &Pattern{
 		Version: version,
 		Tempo:   tempo,
+		Tracks:  []Track{},
 	}
 
 loop:
 	for {
 		var id uint32
-		err := er.Read(binary.BigEndian, &id)
+		err := er.Read(binary.LittleEndian, &id)
 
 		switch {
 		case err == io.EOF:
 			break loop // done reading
-
 		case err != nil:
 			return nil, err
 		}
 
 		var len byte
-		er.Read(binary.BigEndian, &len)
+		er.Read(binary.LittleEndian, &len)
 
 		instrument := make([]byte, len)
 		steps := make([]byte, 16)
@@ -116,6 +118,14 @@ loop:
 		if er.err != nil {
 			return nil, er.err
 		}
+
+		t := Track{
+			ID:         id,
+			Instrument: string(instrument),
+			Steps:      steps,
+		}
+
+		p.Tracks = append(p.Tracks, t)
 	}
 
 	return p, nil
@@ -123,8 +133,57 @@ loop:
 
 // Pattern is the high level representation of the
 // drum pattern contained in a .splice file.
-// TODO: implement
 type Pattern struct {
 	Version string
 	Tempo   float32
+	Tracks  []Track
+}
+
+func (p Pattern) String() string {
+	s := fmt.Sprintf(
+		"Saved with HW Version: %s\nTempo: %g\n",
+		p.Version, p.Tempo,
+	)
+
+	for _, t := range p.Tracks {
+		s += t.String() + "\n"
+	}
+
+	return s
+
+}
+
+type Track struct {
+	ID         uint32
+	Instrument string
+	Steps      Steps
+}
+
+func (t Track) String() string {
+	return fmt.Sprintf(
+		"(%d) %v\t%v",
+		t.ID, t.Instrument, t.Steps,
+	)
+}
+
+type Steps []byte
+
+func (steps Steps) String() string {
+	var s string
+
+	for i := 0; i < len(steps); i++ {
+		if i%4 == 0 {
+			s += "|"
+		}
+
+		if steps[i] > 0 {
+			s += "x"
+		} else {
+			s += "-"
+		}
+	}
+
+	s += "|"
+
+	return s
 }
