@@ -64,7 +64,6 @@ func (d *Decoder) Decode() (*Pattern, error) {
 			Size    int64
 			Version [32]byte
 		}
-
 		tempo float32
 	)
 
@@ -108,10 +107,8 @@ loop:
 
 		var len byte
 		er.Read(binary.LittleEndian, &len)
-
 		instrument := make([]byte, len)
 		steps := make([]byte, 16)
-
 		er.ReadFull(instrument)
 		er.ReadFull(steps)
 
@@ -170,7 +167,6 @@ type Steps []byte
 
 func (steps Steps) String() string {
 	var s string
-
 	for i := 0; i < len(steps); i++ {
 		if i%4 == 0 {
 			s += "|"
@@ -182,8 +178,6 @@ func (steps Steps) String() string {
 			s += "-"
 		}
 	}
-
 	s += "|"
-
 	return s
 }
